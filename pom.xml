@@ -17,6 +17,7 @@
         <scoverage.plugin.version>1.2.0</scoverage.plugin.version>
         <scalatest.version>3.0.4</scalatest.version>
         <breeze.version>0.13.2</breeze.version>
+        <scopt.version>3.7.0</scopt.version>
     </properties>
 
     <dependencies>
@@ -35,6 +36,36 @@
             <groupId>org.scalanlp</groupId>
             <artifactId>breeze_${scala.version.major}</artifactId>
             <version>${breeze.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_${scala.version.major}</artifactId>
+            <version>${scopt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-core</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-scala_${scala.version.major}</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-scala_${scala.version.major}</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table_${scala.version.major}</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-elasticsearch5_${scala.version.major}</artifactId>
+            <version>${flink.version}</version>
         </dependency>
     </dependencies>
 
