@@ -65,7 +65,8 @@ object CsvDataInputSource {
 
     for (i <- (1 to numSensors).toList) yield {
       val value = row.getField(i).asInstanceOf[JDouble].doubleValue()
-      DataPoint(ts, value, s"Sensor-$i")
+      val sensor = s"Sensor-$i"
+      DataPoint(DataPoint.createId(sensor, ts), ts, value, sensor)
     }
   }
 

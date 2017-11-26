@@ -1,6 +1,7 @@
 package net.example.anomalies.model
 
 import java.time.Instant
+import java.util.UUID
 
 /**
   * Data that has been flagged as either good or anomalous.
@@ -27,6 +28,11 @@ sealed trait FlaggedData {
     */
   def isAnomalous : Boolean
 
+  /**
+    * @return Unique record ID.
+    */
+  def id : UUID
+
 }
 
 /**
@@ -42,6 +48,8 @@ case class Good(data : DataPoint) extends FlaggedData {
   override def timestamp: Instant = data.timestamp
 
   override def isAnomalous = false
+
+  override def id: UUID = data.id
 }
 
 /**
@@ -57,4 +65,6 @@ case class Anomalous(data : DataPoint, anomalyLevel : Double) extends FlaggedDat
   override def timestamp: Instant = data.timestamp
 
   override def isAnomalous = false
+
+  override def id: UUID = data.id
 }

@@ -23,6 +23,7 @@ class DataPointOutput(index : String, typeName : String) extends ElasticsearchSi
       .field("value", data.value)
 
     Requests.indexRequest(index)
+      .id(data.id.toString)
       .`type`(typeName)
       .source(builder)
   }

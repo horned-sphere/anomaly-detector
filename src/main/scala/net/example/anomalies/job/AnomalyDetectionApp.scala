@@ -54,14 +54,16 @@ class AnomalyDetectionApp(jobName : String,
     transportAddresses.add(new InetSocketAddress(
       InetAddress.getByName(esParams.hostIp), esParams.port))
 
+    val target = esParams.outputTarget
+
     val directSink = new ElasticsearchSink[DataPoint](esConfig, transportAddresses,
-      new DataPointOutput(esParams.directTarget.indexName, esParams.directTarget.typeName))
+      new DataPointOutput(target.indexName, target.typeName))
 
     val scoredSink = new ElasticsearchSink[ScoredPoint](esConfig, transportAddresses,
-      new ScoredPointOutput(esParams.scoredTarget.indexName, esParams.scoredTarget.typeName))
+      new ScoredPointOutput(target.indexName, target.typeName))
 
     val correctedSink = new ElasticsearchSink[CorrectedDataPoint](esConfig, transportAddresses,
-      new CorrectedPointOutput(esParams.correctedTarget.indexName, esParams.correctedTarget.typeName))
+      new CorrectedPointOutput(target.indexName, target.typeName))
 
     //Wire up the job.
     val job = new AnomalyDetectionJob(outlierStrat, interpStrat, directSink, scoredSink, correctedSink)

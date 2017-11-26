@@ -1,13 +1,11 @@
 package net.example.anomalies.io
 
-import java.util.Date
-
-import net.example.anomalies.model.{ScoredPoint, DataPoint}
+import net.example.anomalies.model.ScoredPoint
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.connectors.elasticsearch.{ElasticsearchSinkFunction, RequestIndexer}
 import org.elasticsearch.action.index.IndexRequest
 import org.elasticsearch.client.Requests
-import org.elasticsearch.common.xcontent.{XContent, XContentBuilder, XContentFactory}
+import org.elasticsearch.common.xcontent.XContentFactory
 
 /**
   * Elastic search mapping for [[ScoredPoint]].
@@ -18,11 +16,9 @@ import org.elasticsearch.common.xcontent.{XContent, XContentBuilder, XContentFac
 class ScoredPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[ScoredPoint]{
   def createIndexRequest(data: ScoredPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
-        .field("timestamp", Date.from(data.dataPoint.timestamp))
-        .field("sensor", data.dataPoint.sensor)
-        .field("value", data.dataPoint.value)
         .field("anomalyScore", data.anomalyScore)
     Requests.indexRequest(index)
+      .id(data.dataPoint.id.toString)
       .`type`(typeName)
       .source(builder)
   }

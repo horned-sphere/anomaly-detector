@@ -147,11 +147,12 @@ object LinearRegression {
         val optFit = if (hasGoodBefore) interpolationFit else extrapolationFit
         optFit match {
           case Some(fit) if fit.min <= record.epochTimeStamp && record.epochTimeStamp <= fit.max => fit(record)
-          case _ => CorrectedDataPoint(record.timestamp, None, record.sensor, PointStatus.InterpolationFailure)
+          case _ => CorrectedDataPoint(record.id, record.timestamp, None, record.sensor, PointStatus.InterpolationFailure)
         }
       }
     } else {
-      for (Good(rec) <- centralRegion) yield CorrectedDataPoint(rec.timestamp,
+      for (Good(rec) <- centralRegion) yield CorrectedDataPoint(
+        rec.id, rec.timestamp,
         Some(rec.value), rec.sensor, PointStatus.Original)
     }
     //Update the history.
@@ -173,11 +174,11 @@ object LinearRegression {
 
     def apply(flagged : FlaggedData) : CorrectedDataPoint = {
       flagged match {
-        case Good(rec) => CorrectedDataPoint(rec.timestamp, Some(rec.value), rec.sensor, PointStatus.Original)
+        case Good(rec) => CorrectedDataPoint(rec.id, rec.timestamp, Some(rec.value), rec.sensor, PointStatus.Original)
         case Anomalous(rec, _) =>
           val x = (flagged.epochTimeStamp - min).toDouble / deltaT
           val replacement = gradient * x + intercept
-          CorrectedDataPoint(rec.timestamp, Some(replacement), rec.sensor, PointStatus.Interpolated)
+          CorrectedDataPoint(rec.id, rec.timestamp, Some(replacement), rec.sensor, PointStatus.Interpolated)
       }
     }
 
