@@ -2,7 +2,7 @@ package net.example.anomalies.io
 
 import java.util.Date
 
-import net.example.anomalies.model.{AnomalousPoint, CorrectedDataPoint, DataPoint}
+import net.example.anomalies.model.CorrectedDataPoint
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.connectors.elasticsearch.{ElasticsearchSinkFunction, RequestIndexer}
 import org.elasticsearch.action.index.IndexRequest

@@ -1,8 +1,8 @@
 package net.example.anomalies.model
 
 /**
-  * Description of an anomaly.
+  * A data point with associated anomaly score.
   * @param dataPoint The underlying point.
   * @param anomalyScore The anomaly score from the anomaly detector.
   */
-case class AnomalousPoint(dataPoint : DataPoint, anomalyScore : Double)
+case class ScoredPoint(dataPoint : DataPoint, anomalyScore : Double)

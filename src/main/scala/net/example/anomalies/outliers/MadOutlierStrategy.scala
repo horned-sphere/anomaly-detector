@@ -1,7 +1,7 @@
 package net.example.anomalies.outliers
 
 import breeze.linalg.DenseVector
-import net.example.anomalies.model.{Anomalous, DataPoint, FlaggedData, Good}
+import net.example.anomalies.model._
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows
@@ -32,7 +32,7 @@ class MadOutlierStrategy(paddingMultiple: Int,
 
   require(thresholdMultiple > 0.0, s"Threshold multiple must be positive: $thresholdMultiple.")
 
-  override def flagOutliers(in: DataStream[DataPoint]): DataStream[FlaggedData] = {
+  override def scoreData(in: DataStream[DataPoint]): DataStream[ScoredPoint] = {
 
     val slidingWindow = SlidingEventTimeWindows.of(Time.milliseconds(windowLength.toMillis),
       Time.milliseconds(windowSlide.toMillis))
@@ -41,6 +41,14 @@ class MadOutlierStrategy(paddingMultiple: Int,
       .window(slidingWindow)
       .apply(new MadWindowFunction(windowSlide, paddingMultiple, thresholdMultiple))
 
+  }
+
+  override def flagPoint(scored: ScoredPoint): FlaggedData = {
+    if (scored.anomalyScore > thresholdMultiple) {
+      Anomalous(scored.dataPoint, scored.anomalyScore)
+    } else {
+      Good(scored.dataPoint)
+    }
   }
 }
 
@@ -60,18 +68,18 @@ object MadOutlierStrategy {
     */
   class MadWindowFunction(slide: FiniteDuration,
                           paddingMultiple: Int,
-                          thresholdMultiple: Double) extends WindowFunction[DataPoint, FlaggedData, String, TimeWindow] {
+                          thresholdMultiple: Double) extends WindowFunction[DataPoint, ScoredPoint, String, TimeWindow] {
     override def apply(key: String,
                        window: TimeWindow,
                        input: Iterable[DataPoint],
-                       out: Collector[FlaggedData]): Unit = {
-      for (rec <- outliers(window.getStart, window.getEnd, slide.toMillis,
+                       out: Collector[ScoredPoint]): Unit = {
+      for (rec <- score(window.getStart, window.getEnd, slide.toMillis,
         paddingMultiple, input, thresholdMultiple)) out.collect(rec)
     }
   }
 
   /**
-    * Select outliers in the central region of a window. The central region is the part of the window that does not
+    * Score data in the central region of a window. The central region is the part of the window that does not
     * intersect with neighbouring windows.
     * @param minTime The minimum time of the window.
     * @param maxTime The maximum time of the window.
@@ -80,11 +88,11 @@ object MadOutlierStrategy {
     * @param thresholdMultiple The threshold multiple for outlier flagging.
     * @return The flagged data from the central region.
     */
-  def outliers(minTime: Long,
+  def score(minTime: Long,
                maxTime: Long, slide: Long,
                paddingMultiple : Int,
                data: Iterable[DataPoint],
-               thresholdMultiple: Double): Iterable[FlaggedData] = {
+               thresholdMultiple: Double): Iterable[ScoredPoint] = {
 
     //Compute the median of all data in the window.
     val values = DenseVector(data.map(_.value).toArray)
@@ -105,11 +113,7 @@ object MadOutlierStrategy {
     for (record <- data; epoch = record.timestamp.toEpochMilli if centralMin <= epoch && epoch < centralMax) yield {
       val score = Math.abs(record.value - windowMedian) / scaledMad
 
-      if (Math.abs(record.value - windowMedian) > thresholdMultiple) {
-        Anomalous(record, score)
-      } else {
-        Good(record)
-      }
+      ScoredPoint(record, score)
     }
   }
 

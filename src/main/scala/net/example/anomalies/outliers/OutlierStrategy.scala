@@ -1,6 +1,6 @@
 package net.example.anomalies.outliers
 
-import net.example.anomalies.model.{DataPoint, FlaggedData}
+import net.example.anomalies.model.{DataPoint, FlaggedData, ScoredPoint}
 import org.apache.flink.streaming.api.scala.DataStream
 
 /**
@@ -9,10 +9,17 @@ import org.apache.flink.streaming.api.scala.DataStream
 trait OutlierStrategy {
 
   /**
-    * Transform a stream of data points into a stream of flagged points.
+    * Compute anomaly scores for a stream of data.
     * @param in The input data.
+    * @return The scored data.
+    */
+  def scoreData(in : DataStream[DataPoint]) : DataStream[ScoredPoint]
+
+  /**
+    * Flag data as good and bad based on the anomaly score.
+    * @param scored The scored data.
     * @return The flagged data.
     */
-  def flagOutliers(in : DataStream[DataPoint]) : DataStream[FlaggedData]
+  def flagPoint(scored : ScoredPoint) : FlaggedData
 
 }

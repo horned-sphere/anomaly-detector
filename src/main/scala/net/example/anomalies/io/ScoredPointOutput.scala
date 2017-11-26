@@ -2,7 +2,7 @@ package net.example.anomalies.io
 
 import java.util.Date
 
-import net.example.anomalies.model.{AnomalousPoint, DataPoint}
+import net.example.anomalies.model.{ScoredPoint, DataPoint}
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.connectors.elasticsearch.{ElasticsearchSinkFunction, RequestIndexer}
 import org.elasticsearch.action.index.IndexRequest
@@ -10,12 +10,13 @@ import org.elasticsearch.client.Requests
 import org.elasticsearch.common.xcontent.{XContent, XContentBuilder, XContentFactory}
 
 /**
-  * Elastic search mapping for [[AnomalousPoint]].
+  * Elastic search mapping for [[ScoredPoint]].
+  *
   * @param index The elastic search index name.
   * @param typeName The type name in the index.
   */
-class AnomalousPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[AnomalousPoint]{
-  def createIndexRequest(data : AnomalousPoint) : IndexRequest = {
+class ScoredPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[ScoredPoint]{
+  def createIndexRequest(data: ScoredPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
         .field("timestamp", Date.from(data.dataPoint.timestamp))
         .field("sensor", data.dataPoint.sensor)
@@ -26,7 +27,7 @@ class AnomalousPointOutput(index : String, typeName : String) extends Elasticsea
       .source(builder)
   }
 
-  override def process(point : AnomalousPoint,
+  override def process(point: ScoredPoint,
                        runtimeContext: RuntimeContext,
                        indexer: RequestIndexer): Unit =
     indexer.add(createIndexRequest(point))
