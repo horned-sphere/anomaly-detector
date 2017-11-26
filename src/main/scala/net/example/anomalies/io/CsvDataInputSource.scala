@@ -16,18 +16,27 @@ import org.apache.flink.types.Row
   * @param numSensors The number of sensors in the file.
   * @param path The path to the file.
   */
-class CsvDataInputSource(numSensors : Int, path : URI) extends InputSource {
+class CsvDataInputSource(numSensors : Int, path : URI, withSpaces : Boolean) extends InputSource with Serializable {
 
   import CsvDataInputSource._
 
   override def loadSource(env: StreamExecutionEnvironment): DataStream[DataPoint] = {
+    unpackRows(loadRows(env))
+  }
+
+  def loadRows(env : StreamExecutionEnvironment): DataStream[Row] = {
     val tableEnv = TableEnvironment.getTableEnvironment(env)
 
-    val tableSrcBuilder = CsvTableSource.builder()
+    val builder = CsvTableSource.builder()
       .ignoreParseErrors()
       .ignoreFirstLine()
       .path(path.toString)
       .field("Date", Types.STRING)
+
+    val tableSrcBuilder = if(withSpaces) {
+      builder.fieldDelimiter(", ")
+        .lineDelimiter(" \n")
+    } else builder
 
     for (i <- 1 to numSensors) tableSrcBuilder.field(s"Sensor-$i", Types.DOUBLE)
 
@@ -36,9 +45,12 @@ class CsvDataInputSource(numSensors : Int, path : URI) extends InputSource {
     val table = tableEnv.scan("CsvInput")
 
     tableEnv.toAppendStream[Row](table)
-        .map(r => (r, extractTimestamp(r)))
-        .assignAscendingTimestamps(_._2.toEpochMilli)
-        .flatMap(fromRow(numSensors) _)
+  }
+
+  def unpackRows(rows : DataStream[Row]) : DataStream[DataPoint] = {
+    rows.map(r => (r, extractTimestamp(r)))
+      .assignAscendingTimestamps(_._2.toEpochMilli)
+      .flatMap(fromRow(numSensors) _)
   }
 }
 

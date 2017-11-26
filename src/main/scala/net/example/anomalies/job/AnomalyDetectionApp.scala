@@ -17,10 +17,12 @@ import scopt.OptionParser
   * Anomaly detection job entry point.
   * @param jobName The name of the job.
   * @param dataPath The path to the input data.
+  * @param extraSpaces Whether the input CSV has extra spaces.
   * @param config The job configuration.
   */
 class AnomalyDetectionApp(jobName : String,
                           dataPath : URI,
+                          extraSpaces : Boolean,
                           config : JobConfiguration) extends Runnable {
   override def run() : Unit = {
 
@@ -31,7 +33,7 @@ class AnomalyDetectionApp(jobName : String,
     env.getCheckpointConfig.setMinPauseBetweenCheckpoints(config.minTimeBetweenCheckpoints.toMillis)
 
     //Get the input data.
-    val input = new CsvDataInputSource(config.numSensors, dataPath)
+    val input = new CsvDataInputSource(config.numSensors, dataPath, extraSpaces)
 
     val inputSrc = input.loadSource(env)
 
@@ -79,7 +81,7 @@ object AnomalyDetectionApp {
 
   def main(args : Array[String]) : Unit = {
     CmdLineParser.parse(args, Config()) match {
-      case Some(conf) => new AnomalyDetectionApp(conf.jobName, conf.dataPath,
+      case Some(conf) => new AnomalyDetectionApp(conf.jobName, conf.dataPath, conf.extraSpaces,
         PropertiesConfiguration(conf.configFile)).run()
       case _ =>
 
@@ -103,6 +105,10 @@ object AnomalyDetectionApp {
       .required()
       .valueName("<uri>")
       .text("Input data URI.")
+
+    opt[Unit]("extraSpaces")
+        .action((_, c) => c.copy(extraSpaces = true))
+        .text("Whether the CSV file has extra spaces.")
   }
 
   /**
@@ -110,9 +116,11 @@ object AnomalyDetectionApp {
     * @param jobName The name of the job.
     * @param dataPath The path to the input data.
     * @param configFile The path to the configuration file.
+    * @param extraSpaces Whether the CSV file has extra spaces.
     */
   case class Config(jobName : String = "Anomaly Detector",
                     dataPath : URI = null,
-                    configFile : File = null)
+                    configFile : File = null,
+                    extraSpaces : Boolean = false)
 
 }
