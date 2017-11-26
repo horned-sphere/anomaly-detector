@@ -7,6 +7,6 @@ object PointStatus extends Enumeration {
 
   type PointStatus = Value
 
-  val Original, Interpolated, InterpolationFailure, DataLacuna = Value
+  val Original, Interpolated, InterpolationFailure = Value
 
 }

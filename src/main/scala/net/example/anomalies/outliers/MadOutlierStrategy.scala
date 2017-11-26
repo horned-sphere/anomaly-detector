@@ -16,18 +16,19 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Outlier detection strategy which compares the deviation of the value of a point against the median
   * deviation from the median over a sliding window. Outliers are flagged based on a configurable threshold.
-  * @param windowLength The length of the sliding windows.
+  * @param paddingMultiple The window length is (2 * paddingMultiple + 1) times the slide.
   * @param windowSlide The slide of the windows.
   * @param thresholdMultiple The threshold multiple for outlier flagging.
   */
-class MadOutlierStrategy(windowLength: FiniteDuration,
+class MadOutlierStrategy(paddingMultiple: Int,
                          windowSlide: FiniteDuration,
                          thresholdMultiple: Double) extends OutlierStrategy {
 
+  require(paddingMultiple >= 1, s"Padding multiple must be at least 1: $paddingMultiple")
+
   import MadOutlierStrategy._
 
-  require(windowSlide * 2 > windowLength,
-    s"Window slide ($windowSlide) is less than half the window length ($windowLength).")
+  private val windowLength = (2 * paddingMultiple + 1) * windowSlide
 
   require(thresholdMultiple > 0.0, s"Threshold multiple must be positive: $thresholdMultiple.")
 
@@ -38,7 +39,7 @@ class MadOutlierStrategy(windowLength: FiniteDuration,
 
     in.keyBy(_.sensor)
       .window(slidingWindow)
-      .apply(new MadWindowFunction(windowSlide, thresholdMultiple))
+      .apply(new MadWindowFunction(windowSlide, paddingMultiple, thresholdMultiple))
 
   }
 }
@@ -54,15 +55,18 @@ object MadOutlierStrategy {
   /**
     * Window function to flag outliers.
     * @param slide The slide of the windows.
+    * @param paddingMultiple The window length is (2 * paddingMultiple + 1) times the slide.
     * @param thresholdMultiple The threshold multiple for outlier flagging.
     */
   class MadWindowFunction(slide: FiniteDuration,
+                          paddingMultiple: Int,
                           thresholdMultiple: Double) extends WindowFunction[DataPoint, FlaggedData, String, TimeWindow] {
     override def apply(key: String,
                        window: TimeWindow,
                        input: Iterable[DataPoint],
                        out: Collector[FlaggedData]): Unit = {
-      for (rec <- outliers(window.getStart, window.getEnd, slide.toMillis, input, thresholdMultiple)) out.collect(rec)
+      for (rec <- outliers(window.getStart, window.getEnd, slide.toMillis,
+        paddingMultiple, input, thresholdMultiple)) out.collect(rec)
     }
   }
 
@@ -78,6 +82,7 @@ object MadOutlierStrategy {
     */
   def outliers(minTime: Long,
                maxTime: Long, slide: Long,
+               paddingMultiple : Int,
                data: Iterable[DataPoint],
                thresholdMultiple: Double): Iterable[FlaggedData] = {
 
@@ -91,8 +96,8 @@ object MadOutlierStrategy {
     val mad = median(absDeviations)
 
     //Find the central region bounds.
-    val centralMin = maxTime - slide
-    val centralMax = minTime + slide
+    val centralMin = minTime + paddingMultiple * slide
+    val centralMax = maxTime - paddingMultiple * slide
 
     val scaledMad = mad * Consistency
 
