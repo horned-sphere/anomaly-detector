@@ -18,14 +18,24 @@ trait JobConfiguration extends Serializable {
   def minTimeBetweenCheckpoints : FiniteDuration
 
   /**
-    * @return Maximum gap in time over which interpolation will be attempted.
-    */
-  def maxDataGap : FiniteDuration
-
-  /**
     * @return Configuration for the MAD outlier detection.
     */
   def outlierConfig : MadOutlierConfig
+
+  /**
+    * @return Configuration for the linear regression interpolator.
+    */
+  def interpolationConfig : LinearRegressionConfig
+
+  /**
+    * @return Number of sensors in the input.
+    */
+  def numSensors : Int
+
+  /**
+    * @return Elastic search configuration.
+    */
+  def elasticSearch : ElasticsearchConfig
 
 }
 
@@ -34,10 +44,6 @@ trait JobConfiguration extends Serializable {
   */
 trait MadOutlierConfig {
 
-  /**
-    * @return The length of the windows used for outlier detection.
-    */
-  def windowLength : FiniteDuration
 
   /**
     * @return The amount by which successive windows slide.
@@ -49,5 +55,75 @@ trait MadOutlierConfig {
     *         (estimated by MAD) beyond which a point is considered an outlier.
     */
   def thresholdMultiple : Double
+
+}
+
+/**
+  * Linear regression configuration.
+  */
+trait LinearRegressionConfig {
+
+  /**
+    * @return The window slide for interpolation.
+    */
+  def windowSlide : FiniteDuration
+
+  /**
+    * @return Maximum extrapolation time.
+    */
+  def maximumGap : FiniteDuration
+
+  /**
+    * @return Target length for the history for the purpose of extrapolation.
+    */
+  def historyLength : Int
+
+}
+
+/**
+  * Elasticsearch index and type.
+  */
+trait ElasticSearchTarget {
+
+  def indexName : String
+
+  def typeName : String
+
+}
+
+/**
+  * Elasticsearch configuration.
+  */
+trait ElasticsearchConfig {
+
+  /**
+    * @return The cluster name.
+    */
+  def clusterName : String
+
+  /**
+    * @return The host IP.
+    */
+  def hostIp : String
+
+  /**
+    * @return The port.
+    */
+  def port : Int
+
+  /**
+    * @return Output target for the raw data.
+    */
+  def directTarget : ElasticSearchTarget
+
+  /**
+    * @return Output target for the scored data.
+    */
+  def scoredTarget : ElasticSearchTarget
+
+  /**
+    * @return Output target for the corrected data.
+    */
+  def correctedTarget : ElasticSearchTarget
 
 }

@@ -1,5 +1,6 @@
 package net.example.anomalies.io
 
+import java.net.URI
 import java.time.Instant
 
 import net.example.anomalies.model.DataPoint
@@ -13,17 +14,20 @@ import org.apache.flink.types.Row
 /**
   * Loads the data from a custom CSV format.
   * @param numSensors The number of sensors in the file.
+  * @param path The path to the file.
   */
-class CsvDataInputSource(numSensors : Int) extends InputSource {
+class CsvDataInputSource(numSensors : Int, path : URI) extends InputSource {
 
   import CsvDataInputSource._
 
   override def loadSource(env: StreamExecutionEnvironment): DataStream[DataPoint] = {
     val tableEnv = TableEnvironment.getTableEnvironment(env)
 
-    val tableSrcBuilder = CsvTableSource.builder().field("Date", Types.STRING)
+    val tableSrcBuilder = CsvTableSource.builder()
       .ignoreParseErrors()
       .ignoreFirstLine()
+      .path(path.toString)
+      .field("Date", Types.STRING)
 
     for (i <- 1 to numSensors) tableSrcBuilder.field(s"Sensor-$i", Types.DOUBLE)
 

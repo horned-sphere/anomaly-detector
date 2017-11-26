@@ -18,15 +18,52 @@ class PropertiesConfiguration(props : Properties) extends JobConfiguration {
 
   override def minTimeBetweenCheckpoints: FiniteDuration = getFiniteDuration(props, CHECKPOINT_MIN_BETWEEN, 5.minutes)
 
-  override def maxDataGap: FiniteDuration = getFiniteDuration(props, MAX_GAP, 15.minutes)
-
   override def outlierConfig : MadOutlierConfig = new MadOutlierConfig {
-
-    override def windowLength: FiniteDuration = getFiniteDuration(props, MAD_WINDOW_LENGTH, 1.minute)
 
     override def thresholdMultiple: Double = getDouble(props, MAD_THRESHOLD, 4.0)
 
     override def windowSlide: FiniteDuration = getFiniteDuration(props, MAD_WINDOW_SLIDE, 40.seconds)
+  }
+
+  override def interpolationConfig : LinearRegressionConfig = new LinearRegressionConfig {
+
+    override def maximumGap: FiniteDuration = getFiniteDuration(props, MAX_GAP, 15.minutes)
+
+    override def historyLength: Int = getInt(props, HISTORY_LEN, 10)
+
+    override def windowSlide: FiniteDuration = getFiniteDuration(props, INT_WINDOW_SLIDE, 5.minutes)
+  }
+
+  override def numSensors: Int = getInt(props, NUM_SENSORS, 10)
+
+  override def elasticSearch : ElasticsearchConfig= new ElasticsearchConfig {
+
+    override def hostIp: String = getString(props, ES_HOST_IP, "127.0.0.1")
+
+    override def port: Int = getInt(props, ES_PORT, 9300)
+
+
+    override def clusterName: String = getString(props, ES_CLUSTER_NAME, "my_cluster")
+
+    override def directTarget: ElasticSearchTarget = new ElasticSearchTarget {
+
+      override def indexName: String = getString(props, esIndexName("direct"), "rawData")
+
+      override def typeName: String = getString(props, esTypeName("direct"), "raw")
+    }
+    override def scoredTarget: ElasticSearchTarget = new ElasticSearchTarget {
+
+      override def indexName: String = getString(props, esIndexName("scored"), "scoredData")
+
+      override def typeName: String = getString(props, esTypeName("scored"), "scored")
+    }
+
+    override def correctedTarget: ElasticSearchTarget = new ElasticSearchTarget {
+
+      override def indexName: String = getString(props, esIndexName("corrected"), "correctedData")
+
+      override def typeName: String = getString(props, esTypeName("corrected"), "corrected")
+    }
   }
 }
 
@@ -37,9 +74,16 @@ object PropertiesConfiguration {
   val CHECKPOINT_MIN_BETWEEN = "checkpoint.min_between"
   val ASYNC_CHECKPOINTS = "checkpoints.do_async"
   val MAX_GAP = "interpolation.max_gap"
-  val MAD_WINDOW_LENGTH = "outliers.window_length"
+  val HISTORY_LEN = "interpolation.history_len"
+  val INT_WINDOW_SLIDE = "interpolation.window_slide"
   val MAD_WINDOW_SLIDE = "outliers.window_slide"
   val MAD_THRESHOLD = "outliers.threshold_multiple"
+  val NUM_SENSORS = "num_sensors"
+  val ES_HOST_IP = "es.host_ip"
+  val ES_PORT = "es.port"
+  val ES_CLUSTER_NAME = "es.cluster_name"
+  def esIndexName(target : String) : String = s"es.$target.index"
+  def esTypeName(target : String) : String = s"es.$target.type_name"
 
   /**
     * Get a finite duration from a property.
@@ -97,6 +141,42 @@ object PropertiesConfiguration {
         case Success(x) => x
         case Failure(t) => throw new IllegalArgumentException(
           s"$value is not a valid double precision floating point number.", t)
+      }
+    }
+  }
+
+  /**
+    * Get a string value from a property.
+    * @param props The properties.
+    * @param key The name of the property.
+    * @param default The default value.
+    * @return The string.
+    */
+  def getString(props : Properties, key : String, default : String) : String = {
+    val value = props.getProperty(key)
+    if (value == null) {
+      default
+    } else {
+      value
+    }
+  }
+
+  /**
+    * Get an integer value from a property.
+    * @param props The properties.
+    * @param key The name of the property.
+    * @param default The default value.
+    * @return The integer.
+    */
+  def getInt(props : Properties, key : String, default : Int) : Int = {
+    val value = props.getProperty(key)
+    if (value == null) {
+      default
+    } else {
+      Try(value.toInt) match {
+        case Success(n) => n
+        case Failure(t) => throw new IllegalArgumentException(
+          s"$value is not a valid integer.", t)
       }
     }
   }
