@@ -34,4 +34,9 @@ object DataPoint {
     UUID.nameUUIDFromBytes(bos.toByteArray)
   }
 
+  implicit object DataPointExtractor extends Timestamped[DataPoint] with Measurement[DataPoint] {
+    override def getTimestamp(record: DataPoint): Long = record.timestamp.toEpochMilli
+
+    override def getValue(record: DataPoint): Double = record.value
+  }
 }

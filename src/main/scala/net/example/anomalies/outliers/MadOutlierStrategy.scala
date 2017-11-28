@@ -96,25 +96,67 @@ object MadOutlierStrategy {
 
     //Compute the median of all data in the window.
     val values = DenseVector(data.map(_.value).toArray)
-    val windowMedian = median(values)
+    val (windowMedian, mad) = computeMedianAndMad(values)
 
-    //Compute the absolute deviation from the median.
-    val absDeviations = values.map(x => Math.abs(x - windowMedian))
+    val central: Iterable[DataPoint] = filterCentral(minTime, maxTime, slide, paddingMultiple, data)
 
-    val mad = median(absDeviations)
+    score(mad, windowMedian, central).map { case (record, score) => ScoredPoint(record, score) }
+  }
 
-    //Find the central region bounds.
-    val centralMin = minTime + paddingMultiple * slide
-    val centralMax = maxTime - paddingMultiple * slide
-
+  /**
+    * Score the selecte data.
+    * @param mad The median absolute deviation.
+    * @param windowMedian The window median.
+    * @param central The region to score.
+    */
+  def score[T](mad : Double,
+            windowMedian : Double,
+            central : Iterable[T])(implicit m : Measurement[T]): Iterable[(T, Double)] = {
     val scaledMad = mad * Consistency
 
     //Flag all records in the central region.
-    for (record <- data; epoch = record.timestamp.toEpochMilli if centralMin <= epoch && epoch < centralMax) yield {
-      val score = Math.abs(record.value - windowMedian) / scaledMad
+    for (record <- central) yield {
+      val score = Math.abs(m.getValue(record) - windowMedian) / scaledMad
 
-      ScoredPoint(record, score)
+      (record, score)
     }
   }
 
+  /**
+    * Select the central region of the window.
+    * @param minTime Minimum time of the window.
+    * @param maxTime Maximum time of the window.
+    * @param slide The window slide.
+    * @param paddingMultiple The padding multiple of the slide.
+    * @param data The data.
+    * @return The central section.
+    */
+  private[outliers] def filterCentral[T](minTime: Long, maxTime: Long,
+                    slide: Long, paddingMultiple: Int,
+                    data: Iterable[T])(implicit t : Timestamped[T]): Iterable[T] = {
+    //Find the central region bounds.
+    val centralMin = minTime + paddingMultiple * slide
+    val centralMax = maxTime - paddingMultiple * slide
+    val central = data.filter { record =>
+      val epoch = t.getTimestamp(record)
+      centralMin <= epoch && epoch < centralMax
+    }
+    central
+  }
+
+  /**
+    * Compute the median and median absolute deviation.
+    *
+    * @param values The values.
+    * @return The MAD.
+    */
+  def computeMedianAndMad(values: DenseVector[Double]): (Double, Double) = {
+    val windowMedian = median(values)
+
+    //Compute the absolute deviations from the median.
+    val absDeviations = values.map(x => Math.abs(x - windowMedian))
+
+    val mad = median(absDeviations)
+    (windowMedian, mad)
+  }
 }
