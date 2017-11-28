@@ -122,7 +122,7 @@ object LinearRegression {
     //Only attempt a fit if there are some bad points.
     val corrected = if (!centralRegion.exists(r => r.isAnomalous)) {
 
-      val seed = (good.isEmpty, centralRegion.head)
+      val seed = (goodPrefix.nonEmpty, centralRegion.head)
 
       //Determine which points require extrapolation and which interpolation.
       val withHandling = centralRegion.tail.scanLeft(seed) { (prev, r) =>
@@ -197,7 +197,7 @@ object LinearRegression {
       None
     } else {
 
-      val deltaT = (minTime - maxTime).toDouble
+      val deltaT = (maxTime - minTime).toDouble
       val n = observations.length
 
       val design = DenseMatrix.ones[Double](n, 2)
