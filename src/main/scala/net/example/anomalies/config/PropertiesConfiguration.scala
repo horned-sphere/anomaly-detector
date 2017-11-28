@@ -58,7 +58,6 @@ object PropertiesConfiguration {
   //Property names.
   val CHECKPOINT_INTERVAL = "checkpoint.interval"
   val CHECKPOINT_MIN_BETWEEN = "checkpoint.min_between"
-  val ASYNC_CHECKPOINTS = "checkpoints.do_async"
   val MAX_GAP = "interpolation.max_gap"
   val HISTORY_LEN = "interpolation.history_len"
   val INT_WINDOW_SLIDE = "interpolation.window_slide"
