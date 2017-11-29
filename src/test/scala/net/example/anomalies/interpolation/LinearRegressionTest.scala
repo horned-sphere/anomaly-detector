@@ -154,7 +154,7 @@ object LinearRegressionTest {
     * @return The point.
     */
   def bad(t : Long) : FlaggedData = Anomalous(UUID.randomUUID(),
-    Instant.ofEpochMilli(t * 1000), 0.0, Sensor, 1.0)
+    Instant.ofEpochMilli(t * 1000), Sensor, Some(1.0))
 
   /**
     * Create a good data point.

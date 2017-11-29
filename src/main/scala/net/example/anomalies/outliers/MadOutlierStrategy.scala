@@ -53,11 +53,11 @@ object MadOutlierStrategy {
       scored.dataPoint.value match {
         case Some(value) =>
           if (scored.anomalyScore > thresholdMultiple) {
-          Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor, scored.anomalyScore)
+          Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor, Some(scored.anomalyScore))
         } else {
           Good(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor)
         }
-        case _ => Missing(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor)
+        case _ => Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor, None)
       }
 
     }
