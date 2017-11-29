@@ -28,6 +28,11 @@ class AnomalyDetectionApp(jobName : String,
 
     //Configure Flink.
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
+    runWith(env)
+
+  }
+
+  def runWith(env: StreamExecutionEnvironment): Unit = {
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     env.enableCheckpointing(config.checkpointInterval.toMillis)
     env.getCheckpointConfig.setMinPauseBetweenCheckpoints(config.minTimeBetweenCheckpoints.toMillis)
@@ -49,6 +54,7 @@ class AnomalyDetectionApp(jobName : String,
 
     val esConfig = new java.util.HashMap[String, String]
     esConfig.put("cluster.name", config.elasticSearch.clusterName)
+    esConfig.put("bulk.flush.max.actions", "1")
 
     val esParams = config.elasticSearch
 
@@ -73,7 +79,6 @@ class AnomalyDetectionApp(jobName : String,
     job.transform(inputSrc)
 
     env.execute(jobName)
-
   }
 }
 

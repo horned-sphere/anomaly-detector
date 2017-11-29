@@ -10,9 +10,12 @@ import java.util.UUID
   * @param value The value of the data point.
   * @param sensor The sensor from which the data point was taken.
   */
-case class DataPoint(id : UUID, timestamp : Instant, value : Double, sensor : String)
+case class DataPoint(id : UUID, timestamp : Instant, value : Option[Double], sensor : String)
 
 object DataPoint {
+
+  def apply(id : UUID, timestamp : Instant, value : Double, sensor : String) =
+    new DataPoint(id, timestamp, Some(value), sensor)
 
   /**
     * Create a unique ID for a record.
@@ -37,6 +40,6 @@ object DataPoint {
   implicit object DataPointExtractor extends Timestamped[DataPoint] with Measurement[DataPoint] {
     override def getTimestamp(record: DataPoint): Long = record.timestamp.toEpochMilli
 
-    override def getValue(record: DataPoint): Double = record.value
+    override def getValue(record: DataPoint): Option[Double] = record.value
   }
 }

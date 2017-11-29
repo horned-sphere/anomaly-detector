@@ -78,8 +78,8 @@ class LinearRegressionTest extends FunSpec with Matchers {
     it("should extrapolate when adequate history is available") {
       val data = (0 to 9).map(n => bad(n + 5)) ++ (10 to 15).map(n => p(n + 5, n.toDouble))
 
-      val oldHistory = List(DataPoint(UUID.randomUUID(), Instant.ofEpochMilli(3000), -2.0, Sensor),
-        DataPoint(UUID.randomUUID(), Instant.ofEpochMilli(4000), -1.0, Sensor))
+      val oldHistory = List(Good(UUID.randomUUID(), Instant.ofEpochMilli(3000), -2.0, Sensor),
+        Good(UUID.randomUUID(), Instant.ofEpochMilli(4000), -1.0, Sensor))
 
       val (history, interpolated) = LinearRegression.interpolate(5000, 20000, 5000, 1, oldHistory, 8, MaxGap, data)
 
@@ -91,7 +91,7 @@ class LinearRegressionTest extends FunSpec with Matchers {
     it("should stop extrapolating after the maximum gap has been exceeded") {
 
       val oldHistory = (0 to 7).map(n =>
-        DataPoint(UUID.randomUUID(), Instant.ofEpochMilli(n * 1000), n.toDouble, Sensor)).toList
+        Good(UUID.randomUUID(), Instant.ofEpochMilli(n * 1000), n.toDouble, Sensor)).toList
 
       val data = (0 to 9).map(n => bad(n + 31)) ++ (10 to 15).map(n => p(n + 31, (n + 31).toDouble))
 
@@ -153,8 +153,8 @@ object LinearRegressionTest {
     * @param t The timestamp in seconds.
     * @return The point.
     */
-  def bad(t : Long) : FlaggedData = Anomalous(DataPoint(UUID.randomUUID(),
-    Instant.ofEpochMilli(t * 1000), 0.0, Sensor), 1.0)
+  def bad(t : Long) : FlaggedData = Anomalous(UUID.randomUUID(),
+    Instant.ofEpochMilli(t * 1000), 0.0, Sensor, 1.0)
 
   /**
     * Create a good data point.
@@ -162,7 +162,7 @@ object LinearRegressionTest {
     * @param v The value.
     * @return The point.
     */
-  def p(t : Long, v : Double) : FlaggedData = Good(DataPoint(UUID.randomUUID(),
-    Instant.ofEpochMilli(t * 1000), v, Sensor))
+  def p(t : Long, v : Double) : FlaggedData = Good(UUID.randomUUID(),
+    Instant.ofEpochMilli(t * 1000), v, Sensor)
 
 }

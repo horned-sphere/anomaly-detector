@@ -26,7 +26,7 @@ sealed trait FlaggedData {
   /**
     * @return Is this record anomalous.
     */
-  def isAnomalous : Boolean
+  def isAnomalousOrMissing : Boolean
 
   /**
     * @return Unique record ID.
@@ -37,34 +37,44 @@ sealed trait FlaggedData {
 
 /**
   * A good data point.
-  * @param data The data.
+  * @param timestamp The timestamp of the data point.
+  * @param value The value of the data point.
+  * @param sensor The sensor from which the data point was taken.
   */
-case class Good(data : DataPoint) extends FlaggedData {
+case class Good(override val id : UUID, override val timestamp : Instant, value : Double, override val sensor : String) extends FlaggedData {
 
-  override def sensor: String = data.sensor
+  override lazy val epochTimeStamp: Long = timestamp.toEpochMilli
 
-  override lazy val epochTimeStamp: Long = data.timestamp.toEpochMilli
+  override def isAnomalousOrMissing = false
 
-  override def timestamp: Instant = data.timestamp
-
-  override def isAnomalous = false
-
-  override def id: UUID = data.id
 }
 
 /**
   * An anomalous data point.
-  * @param data The data.
+  * @param timestamp The timestamp of the data point.
+  * @param value The value of the data point.
+  * @param sensor The sensor from which the data point was taken.
   * @param anomalyLevel The anomaly score from the detector.
   */
-case class Anomalous(data : DataPoint, anomalyLevel : Double) extends FlaggedData {
-  override def sensor: String = data.sensor
+case class Anomalous(override val id : UUID, override val timestamp : Instant, value : Double, override val sensor : String, anomalyLevel : Double)
+  extends FlaggedData {
 
-  override lazy val epochTimeStamp : Long = data.timestamp.toEpochMilli
+  override lazy val epochTimeStamp : Long = timestamp.toEpochMilli
 
-  override def timestamp: Instant = data.timestamp
+  override def isAnomalousOrMissing = true
 
-  override def isAnomalous = false
+}
 
-  override def id: UUID = data.id
+/**
+  * An anomalous data point.
+  * @param timestamp The timestamp of the data point.
+  * @param sensor The sensor from which the data point was taken.
+  */
+case class Missing(override val id : UUID, override val timestamp : Instant, sensor : String)
+  extends FlaggedData {
+
+  override lazy val epochTimeStamp : Long = timestamp.toEpochMilli
+
+  override def isAnomalousOrMissing = true
+
 }

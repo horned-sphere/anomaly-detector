@@ -17,9 +17,12 @@ import org.elasticsearch.common.xcontent.{XContentBuilder, XContentFactory}
 class CorrectedPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[CorrectedDataPoint]{
   def createIndexRequest(data : CorrectedDataPoint) : IndexRequest = {
     val builder = extract(XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
+      .startObject()
       .field("correctionStatus", data.status), data.value)
+      .endObject()
 
     Requests.indexRequest(index)
+      .contentType(Requests.INDEX_CONTENT_TYPE)
       .id(data.id.toString)
       .`type`(typeName)
       .source(builder)

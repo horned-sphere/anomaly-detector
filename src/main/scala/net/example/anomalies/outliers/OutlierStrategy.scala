@@ -17,9 +17,7 @@ trait OutlierStrategy {
 
   /**
     * Flag data as good and bad based on the anomaly score.
-    * @param scored The scored data.
-    * @return The flagged data.
     */
-  def flagPoint(scored : ScoredPoint) : FlaggedData
+  def flagPoint : ScoredPoint => FlaggedData
 
 }

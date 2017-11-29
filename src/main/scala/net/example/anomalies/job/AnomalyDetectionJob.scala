@@ -35,8 +35,6 @@ class AnomalyDetectionJob(outlierStrategy: OutlierStrategy, interpolation : Inte
 
     val splitInput = input.split(_ => List(Raw, Scored))
 
-
-
     val scored = outlierStrategy.scoreData(splitInput.select(Scored))
         .process(new FlaggedSplitter(outlierStrategy.flagPoint))
 
@@ -47,18 +45,20 @@ class AnomalyDetectionJob(outlierStrategy: OutlierStrategy, interpolation : Inte
     (splitInput.select(Raw).addSink(directOut), scored.addSink(scoredOut), corrected.addSink(correctedOut))
   }
 
+
+}
+
+object AnomalyDetectionJob {
+
   /**
     * Name of the raw data path.
     */
-  val Raw = "RawOutput"
+  final val Raw = "RawOutput"
 
   /**
     * Name of the scored data path.
     */
-  val Scored = "ScoredOutput"
-}
-
-object AnomalyDetectionJob {
+  final val Scored = "ScoredOutput"
 
   /**
     * Flagged data side channel.

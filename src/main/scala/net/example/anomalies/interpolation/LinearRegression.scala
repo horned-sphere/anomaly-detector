@@ -66,11 +66,11 @@ object LinearRegression {
     /**
       * State containing the history.
       */
-    private var history : ListState[DataPoint] = _
+    private var history : ListState[Good] = _
 
     override def open(parameters: Configuration): Unit = {
-      history = getRuntimeContext.getListState(new ListStateDescriptor[DataPoint](
-        "LinearRegressionHistory", implicitly[TypeInformation[DataPoint]]))
+      history = getRuntimeContext.getListState(new ListStateDescriptor[Good](
+        "LinearRegressionHistory", implicitly[TypeInformation[Good]]))
     }
 
     override def apply(key: String,
@@ -104,61 +104,63 @@ object LinearRegression {
     */
   def interpolate(windowStart : Long, windowEnd : Long,
                   windowSlide : Long, paddingMultiple : Int,
-                  history : Iterable[DataPoint], historyLen : Int, maxGap : Long,
-                  data : Iterable[FlaggedData]) : (Iterable[DataPoint], Iterable[CorrectedDataPoint]) = {
+                  history : Iterable[Good], historyLen : Int, maxGap : Long,
+                  data : Iterable[FlaggedData]) : (Iterable[Good], Iterable[CorrectedDataPoint]) = {
 
     //Determine where the central region lies.
     val centralMin = windowStart + paddingMultiple * windowSlide
     val centralMax = windowEnd - paddingMultiple * windowSlide
 
     //Find all of the good data.
-    val good = for(Good(rec) <- data) yield rec
+    val good = for(rec @ Good(_, _, _, _) <- data) yield rec
 
     //Find all good data before the central region.
     val goodPrefix = good.filter(_.timestamp.toEpochMilli < centralMin)
 
     val centralRegion = data.filter(r => r.epochTimeStamp >= centralMin && r.epochTimeStamp < centralMax)
 
-    //Only attempt a fit if there are some bad points.
-    val corrected = if (!centralRegion.exists(r => r.isAnomalous)) {
+    if (centralRegion.nonEmpty) {
 
-      val seed = (goodPrefix.nonEmpty, centralRegion.head)
+      //Only attempt a fit if there are some bad points.
+      val corrected = if (centralRegion.exists(r => r.isAnomalousOrMissing)) {
 
-      //Determine which points require extrapolation and which interpolation.
-      val withHandling = centralRegion.tail.scanLeft(seed) { (prev, r) =>
-        r match {
-          case Good(_) => (true, r)
-          case _ => (prev._1, r)
+        val seed = (goodPrefix.nonEmpty, centralRegion.head)
+
+        //Determine which points require extrapolation and which interpolation.
+        val withHandling = centralRegion.tail.scanLeft(seed) { (prev, r) =>
+          r match {
+            case good : Good => (true, good)
+            case _ => (prev._1, r)
+          }
         }
-      }
 
-      //Create the extrapolation fit, where appropriate.
-      val extrapolationFit = if (goodPrefix.isEmpty && history.size >= 2) {
-        val histStart = history.head.timestamp.toEpochMilli
-        val histEnd = history.last.timestamp.toEpochMilli
-        fitFor(histStart, histEnd + maxGap, history)
-      } else None
+        //Create the extrapolation fit, where appropriate.
+        val extrapolationFit = if (goodPrefix.isEmpty && history.size >= 2) {
+          val histStart = history.head.timestamp.toEpochMilli
+          val histEnd = history.last.timestamp.toEpochMilli
+          fitFor(histStart, histEnd + maxGap, history)
+        } else None
 
-      //Create the interpolation fit, where possible.
-      val interpolationFit = fitFor(windowStart, windowEnd, good)
+        //Create the interpolation fit, where possible.
+        val interpolationFit = fitFor(windowStart, windowEnd, good)
 
-      //Attempt to correct the central region.
-      for ((hasGoodBefore, record) <- withHandling) yield {
-        val optFit = if (hasGoodBefore) interpolationFit else extrapolationFit
-        optFit match {
-          case Some(fit) if fit.min <= record.epochTimeStamp && record.epochTimeStamp <= fit.max => fit(record)
-          case _ => CorrectedDataPoint(record.id, record.timestamp, None, record.sensor, PointStatus.InterpolationFailure)
+        //Attempt to correct the central region.
+        for ((hasGoodBefore, record) <- withHandling) yield {
+          val optFit = if (hasGoodBefore) interpolationFit else extrapolationFit
+          optFit match {
+            case Some(fit) if fit.min <= record.epochTimeStamp && record.epochTimeStamp <= fit.max => fit(record)
+            case _ => CorrectedDataPoint(record.id, record.timestamp, None, record.sensor, PointStatus.InterpolationFailure)
+          }
         }
+      } else {
+        for (Good(id, timestamp, value, sensor) <- centralRegion) yield CorrectedDataPoint(
+          id, timestamp,
+          Some(value), sensor, PointStatus.Original)
       }
-    } else {
-      for (Good(rec) <- centralRegion) yield CorrectedDataPoint(
-        rec.id, rec.timestamp,
-        Some(rec.value), rec.sensor, PointStatus.Original)
-    }
-    //Update the history.
-    val newHistory = (history ++ goodPrefix).takeRight(historyLen)
-    (newHistory, corrected)
-
+      //Update the history.
+      val newHistory = (history ++ goodPrefix).takeRight(historyLen)
+      (newHistory, corrected)
+    } else (history, Nil)
   }
 
   /**
@@ -174,11 +176,15 @@ object LinearRegression {
 
     def apply(flagged : FlaggedData) : CorrectedDataPoint = {
       flagged match {
-        case Good(rec) => CorrectedDataPoint(rec.id, rec.timestamp, Some(rec.value), rec.sensor, PointStatus.Original)
-        case Anomalous(rec, _) =>
+        case rec : Good => CorrectedDataPoint(rec.id, rec.timestamp, Some(rec.value), rec.sensor, PointStatus.Original)
+        case Anomalous(id, timestamp, _, sensor, _) =>
           val x = (flagged.epochTimeStamp - min).toDouble / deltaT
           val replacement = gradient * x + intercept
-          CorrectedDataPoint(rec.id, rec.timestamp, Some(replacement), rec.sensor, PointStatus.Interpolated)
+          CorrectedDataPoint(id, timestamp, Some(replacement), sensor, PointStatus.Interpolated)
+        case Missing(id, timestamp, sensor) =>
+          val x = (flagged.epochTimeStamp - min).toDouble / deltaT
+          val replacement = gradient * x + intercept
+          CorrectedDataPoint(id, timestamp, Some(replacement), sensor, PointStatus.Interpolated)
       }
     }
 
@@ -191,7 +197,7 @@ object LinearRegression {
     * @param data The data points.
     * @return The fit, if it could be computed.
     */
-  def fitFor(minTime : Long, maxTime : Long, data : Iterable[DataPoint]) : Option[LinearFit] = {
+  def fitFor(minTime : Long, maxTime : Long, data : Iterable[Good]) : Option[LinearFit] = {
     val observations = data.toIndexedSeq.map(r => (r.timestamp.toEpochMilli, r.value))
     if (observations.length < 2) {
       None

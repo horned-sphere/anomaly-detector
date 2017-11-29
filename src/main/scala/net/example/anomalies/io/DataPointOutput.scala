@@ -18,11 +18,17 @@ class DataPointOutput(index : String, typeName : String) extends ElasticsearchSi
 
   def createIndexRequest(data : DataPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
-      .field("timestamp", Date.from(data.timestamp))
-      .field("sensor", data.sensor)
-      .field("value", data.value)
+        .startObject()
+        .field("timestamp", Date.from(data.timestamp))
+        .field("sensor", data.sensor)
+
+    (data.value match {
+      case Some(v) => builder.field("value", v)
+      case _ => builder.nullField("value")
+    }).endObject()
 
     Requests.indexRequest(index)
+      .contentType(Requests.INDEX_CONTENT_TYPE)
       .id(data.id.toString)
       .`type`(typeName)
       .source(builder)

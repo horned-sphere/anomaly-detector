@@ -16,8 +16,11 @@ import org.elasticsearch.common.xcontent.XContentFactory
 class ScoredPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[ScoredPoint]{
   def createIndexRequest(data: ScoredPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
+        .startObject()
         .field("anomalyScore", data.anomalyScore)
+        .endObject()
     Requests.indexRequest(index)
+      .contentType(Requests.INDEX_CONTENT_TYPE)
       .id(data.dataPoint.id.toString)
       .`type`(typeName)
       .source(builder)

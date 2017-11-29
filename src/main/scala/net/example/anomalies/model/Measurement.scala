@@ -11,7 +11,7 @@ trait Measurement[T] {
     * @param record The record.
     * @return The measurement.
     */
-  def getValue(record : T) : Double
+  def getValue(record : T) : Option[Double]
 
 }
 
@@ -19,7 +19,7 @@ object Measurement {
 
   implicit object DoubleMeasurement extends Measurement[Double] {
 
-    override def getValue(record: Double): Double = record
+    override def getValue(record: Double): Option[Double] = Some(record)
   }
 
 }

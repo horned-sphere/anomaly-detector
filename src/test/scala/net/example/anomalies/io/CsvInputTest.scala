@@ -62,8 +62,8 @@ class CsvInputTest extends DataStreamTestBase with FunSpecLike with Matchers wit
           for (i <- seq.indices) {
 
             inside(seq(i).sensor) {
-              case Sensor(nStr) => if (i < 10) seq(i).value shouldEqual nStr.toDouble +- 1e-9 else
-                seq(i).value shouldEqual nStr.toDouble * 10.0  +- 1e-9
+              case Sensor(nStr) => if (i < 10) seq(i).value shouldEqual Some(nStr.toDouble) else
+                seq(i).value shouldEqual Some(nStr.toDouble * 10.0)
             }
           }
         }

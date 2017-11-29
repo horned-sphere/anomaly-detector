@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class MadOutlierStrategy(paddingMultiple: Int,
                          windowSlide: FiniteDuration,
-                         thresholdMultiple: Double) extends OutlierStrategy {
+                         thresholdMultiple: Double) extends OutlierStrategy with Serializable {
 
   require(paddingMultiple >= 1, s"Padding multiple must be at least 1: $paddingMultiple")
 
@@ -43,16 +43,25 @@ class MadOutlierStrategy(paddingMultiple: Int,
 
   }
 
-  override def flagPoint(scored: ScoredPoint): FlaggedData = {
-    if (scored.anomalyScore > thresholdMultiple) {
-      Anomalous(scored.dataPoint, scored.anomalyScore)
-    } else {
-      Good(scored.dataPoint)
-    }
-  }
+  override def flagPoint = new Flagger(thresholdMultiple)
 }
 
 object MadOutlierStrategy {
+
+  class Flagger(thresholdMultiple : Double) extends (ScoredPoint => FlaggedData) with Serializable {
+    override def apply(scored: ScoredPoint): FlaggedData = {
+      scored.dataPoint.value match {
+        case Some(value) =>
+          if (scored.anomalyScore > thresholdMultiple) {
+          Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor, scored.anomalyScore)
+        } else {
+          Good(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor)
+        }
+        case _ => Missing(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor)
+      }
+
+    }
+  }
 
   /**
     * Default consistency scaling level (for Gaussian distributed data, this scales the MAD to be an estimator
@@ -95,7 +104,7 @@ object MadOutlierStrategy {
                thresholdMultiple: Double): Iterable[ScoredPoint] = {
 
     //Compute the median of all data in the window.
-    val values = DenseVector(data.map(_.value).toArray)
+    val values = DenseVector(data.flatMap(_.value).toArray)
     val (windowMedian, mad) = computeMedianAndMad(values)
 
     val central: Iterable[DataPoint] = filterCentral(minTime, maxTime, slide, paddingMultiple, data)
@@ -104,7 +113,7 @@ object MadOutlierStrategy {
   }
 
   /**
-    * Score the selecte data.
+    * Score the selected data.
     * @param mad The median absolute deviation.
     * @param windowMedian The window median.
     * @param central The region to score.
@@ -116,7 +125,10 @@ object MadOutlierStrategy {
 
     //Flag all records in the central region.
     for (record <- central) yield {
-      val score = Math.abs(m.getValue(record) - windowMedian) / scaledMad
+      val score = m.getValue(record) match {
+        case Some(r) => Math.abs(r - windowMedian) / scaledMad
+        case _ => 0.0
+      }
 
       (record, score)
     }
