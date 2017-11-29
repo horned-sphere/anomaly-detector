@@ -33,6 +33,11 @@ sealed trait FlaggedData {
     */
   def id : UUID
 
+  /**
+    * @return The anomaly score.
+    */
+  def score : Option[Double]
+
 }
 
 /**
@@ -41,12 +46,15 @@ sealed trait FlaggedData {
   * @param value The value of the data point.
   * @param sensor The sensor from which the data point was taken.
   */
-case class Good(override val id : UUID, override val timestamp : Instant, value : Double, override val sensor : String) extends FlaggedData {
+case class Good(override val id : UUID, override val timestamp : Instant,
+                value : Double, override val sensor : String,
+                anomalyLevel : Double) extends FlaggedData {
 
   override lazy val epochTimeStamp: Long = timestamp.toEpochMilli
 
   override def isAnomalousOrMissing = false
 
+  override def score = Some(anomalyLevel)
 }
 
 /**
@@ -63,4 +71,5 @@ case class Anomalous(override val id : UUID, override val timestamp : Instant,
 
   override def isAnomalousOrMissing = true
 
+  override def score: Option[Double] = anomalyLevel
 }

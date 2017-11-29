@@ -112,9 +112,18 @@ trait ElasticsearchConfig {
   def port : Int
 
   /**
-    * @return Output target for the data.
+    * @return Output target for the raw data.
     */
-  def outputTarget : ElasticSearchTarget
+  def directTarget : ElasticSearchTarget
 
+  /**
+    * @return Output target for the anomaly scores.
+    */
+  def scoredTarget : ElasticSearchTarget
+
+  /**
+    * @return Output target or the corrected data.
+    */
+  def correctedTarget : ElasticSearchTarget
 
 }

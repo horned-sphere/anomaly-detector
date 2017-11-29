@@ -11,10 +11,12 @@ import net.example.anomalies.model.PointStatus.PointStatus
   * @param timestamp The timestamp of the data point.
   * @param value The value of the data point.
   * @param sensor The name of the sensor.
+  * @param anomalyScore The anomaly score.
   * @param status Whether the data point is original, interpolated or omitted (with reason)
   */
 case class CorrectedDataPoint(id : UUID,
                               timestamp : Instant,
                               value : Option[Double],
                               sensor : String,
+                              anomalyScore : Option[Double],
                               status : PointStatus)

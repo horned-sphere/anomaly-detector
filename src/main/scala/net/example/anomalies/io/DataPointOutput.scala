@@ -16,6 +16,8 @@ import org.elasticsearch.common.xcontent.XContentFactory
   */
 class DataPointOutput(index : String, typeName : String) extends ElasticsearchSinkFunction[DataPoint]{
 
+  import DataPointOutput._
+
   def createIndexRequest(data : DataPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
         .startObject()
@@ -23,8 +25,8 @@ class DataPointOutput(index : String, typeName : String) extends ElasticsearchSi
         .field("sensor", data.sensor)
 
     (data.value match {
-      case Some(v) => builder.field("value", v)
-      case _ => builder.nullField("value")
+      case Some(v) => builder.field(ValueField, v)
+      case _ => builder.nullField(ValueField)
     }).endObject()
 
     Requests.indexRequest(index)
@@ -38,4 +40,10 @@ class DataPointOutput(index : String, typeName : String) extends ElasticsearchSi
                        runtimeContext: RuntimeContext,
                        indexer: RequestIndexer): Unit =
     indexer.add(createIndexRequest(point))
+}
+
+object DataPointOutput {
+
+  val ValueField = "value"
+
 }

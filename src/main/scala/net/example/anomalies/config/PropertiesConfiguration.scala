@@ -45,10 +45,22 @@ class PropertiesConfiguration(props : Properties) extends JobConfiguration {
 
     override def clusterName: String = getString(props, ES_CLUSTER_NAME, "my_cluster")
 
-    override def outputTarget : ElasticSearchTarget = new ElasticSearchTarget {
-      override def indexName: String = getString(props, ES_INDEX_NAME, "data")
+    override def directTarget : ElasticSearchTarget = new ElasticSearchTarget {
+      override def indexName: String = getString(props, ES_INDEX_NAME_RAW, "rawData")
 
-      override def typeName: String = getString(props, ES_TYPE_NAME, "sensorReading")
+      override def typeName: String = getString(props, ES_TYPE_NAME_RAW, "measurement")
+    }
+
+    override def scoredTarget : ElasticSearchTarget = new ElasticSearchTarget {
+      override def indexName: String = getString(props, ES_INDEX_NAME_SCORE, "anomalies")
+
+      override def typeName: String = getString(props, ES_TYPE_NAME_SCORE, "score")
+    }
+
+    override def correctedTarget : ElasticSearchTarget = new ElasticSearchTarget {
+      override def indexName: String = getString(props, ES_INDEX_NAME_CORRECTED, "correctedData")
+
+      override def typeName: String = getString(props, ES_TYPE_NAME_CORRECTED, "measurement")
     }
   }
 }
@@ -67,8 +79,12 @@ object PropertiesConfiguration {
   val ES_HOST_IP = "es.host_ip"
   val ES_PORT = "es.port"
   val ES_CLUSTER_NAME = "es.cluster_name"
-  val ES_INDEX_NAME = "es.index_name"
-  val ES_TYPE_NAME = "es.type_name"
+  val ES_INDEX_NAME_RAW = "es.index_name.raw"
+  val ES_TYPE_NAME_RAW = "es.type_name.raw"
+  val ES_INDEX_NAME_SCORE = "es.index_name.score"
+  val ES_TYPE_NAME_SCORE = "es.type_name.score"
+  val ES_INDEX_NAME_CORRECTED = "es.index_name.corrected"
+  val ES_TYPE_NAME_CORRECTED = "es.type_name.corrected"
 
   /**
     * Get a finite duration from a property.

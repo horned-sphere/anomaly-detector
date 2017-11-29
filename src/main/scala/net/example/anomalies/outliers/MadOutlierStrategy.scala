@@ -55,7 +55,7 @@ object MadOutlierStrategy {
           if (scored.anomalyScore > thresholdMultiple) {
           Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor, Some(scored.anomalyScore))
         } else {
-          Good(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor)
+          Good(scored.dataPoint.id, scored.dataPoint.timestamp, value, scored.dataPoint.sensor, scored.anomalyScore)
         }
         case _ => Anomalous(scored.dataPoint.id, scored.dataPoint.timestamp, scored.dataPoint.sensor, None)
       }

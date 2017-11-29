@@ -1,5 +1,8 @@
 package net.example.anomalies.io
 
+import java.util.Date
+
+import net.example.anomalies.io.DataPointOutput.ValueField
 import net.example.anomalies.model.ScoredPoint
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.connectors.elasticsearch.{ElasticsearchSinkFunction, RequestIndexer}
@@ -17,8 +20,15 @@ class ScoredPointOutput(index : String, typeName : String) extends Elasticsearch
   def createIndexRequest(data: ScoredPoint) : IndexRequest = {
     val builder = XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE)
         .startObject()
+        .field("timestamp", Date.from(data.dataPoint.timestamp))
+        .field("sensor", data.dataPoint.sensor)
         .field("anomalyScore", data.anomalyScore)
-        .endObject()
+
+    (data.dataPoint.value match {
+      case Some(v) => builder.field(ValueField, v)
+      case _ => builder.nullField(ValueField)
+    }).endObject()
+
     Requests.indexRequest(index)
       .contentType(Requests.INDEX_CONTENT_TYPE)
       .id(data.dataPoint.id.toString)

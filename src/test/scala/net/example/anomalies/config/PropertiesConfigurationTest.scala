@@ -38,8 +38,12 @@ class PropertiesConfigurationTest extends FunSpec with Matchers {
       conf.elasticSearch.hostIp shouldEqual "127.0.0.1"
       conf.elasticSearch.port shouldEqual 9300
       conf.elasticSearch.clusterName shouldEqual "test-cluster"
-      conf.elasticSearch.outputTarget.indexName shouldEqual "anomalies"
-      conf.elasticSearch.outputTarget.typeName shouldEqual "measurement"
+      conf.elasticSearch.directTarget.indexName shouldEqual "rawData"
+      conf.elasticSearch.directTarget.typeName shouldEqual "measurement"
+      conf.elasticSearch.scoredTarget.indexName shouldEqual "anomalies"
+      conf.elasticSearch.scoredTarget.typeName shouldEqual "score"
+      conf.elasticSearch.correctedTarget.indexName shouldEqual "correctedData"
+      conf.elasticSearch.correctedTarget.typeName shouldEqual "measurement"
     }
 
   }
