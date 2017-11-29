@@ -44,7 +44,7 @@ class PropertiesConfiguration(props : Properties) extends JobConfiguration {
     override def clusterName: String = getString(props, ES_CLUSTER_NAME, "my_cluster")
 
     override def directTarget : ElasticSearchTarget = new ElasticSearchTarget {
-      override def indexName: String = getString(props, ES_INDEX_NAME_RAW, "rawData")
+      override def indexName: String = getString(props, ES_INDEX_NAME_RAW, "raw_data")
 
       override def typeName: String = getString(props, ES_TYPE_NAME_RAW, "measurement")
     }
@@ -56,7 +56,7 @@ class PropertiesConfiguration(props : Properties) extends JobConfiguration {
     }
 
     override def correctedTarget : ElasticSearchTarget = new ElasticSearchTarget {
-      override def indexName: String = getString(props, ES_INDEX_NAME_CORRECTED, "correctedData")
+      override def indexName: String = getString(props, ES_INDEX_NAME_CORRECTED, "corrected_data")
 
       override def typeName: String = getString(props, ES_TYPE_NAME_CORRECTED, "measurement")
     }

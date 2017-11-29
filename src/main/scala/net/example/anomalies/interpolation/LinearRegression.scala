@@ -41,7 +41,9 @@ class LinearRegression(windowSlide : FiniteDuration, paddingMultiple : Int,
     val slidingWindow = SlidingEventTimeWindows.of(Time.milliseconds(windowLength.toMillis),
       Time.milliseconds(windowSlide.toMillis))
 
-    flagged.keyBy(_.sensor)
+    flagged
+      .assignAscendingTimestamps(_.epochTimeStamp)
+      .keyBy(_.sensor)
       .window(slidingWindow)
       .apply(new LinRegressionWindowFunction(windowSlide, paddingMultiple, historyLen, maxGap))
   }
@@ -117,7 +119,8 @@ object LinearRegression {
     //Find all good data before the central region.
     val goodPrefix = good.filter(_.timestamp.toEpochMilli < centralMin)
 
-    val centralRegion = data.filter(r => r.epochTimeStamp >= centralMin && r.epochTimeStamp < centralMax)
+    val centralRegion = data.filter(r =>
+      r.epochTimeStamp >= centralMin && r.epochTimeStamp < centralMax)
 
     if (centralRegion.nonEmpty) {
 
