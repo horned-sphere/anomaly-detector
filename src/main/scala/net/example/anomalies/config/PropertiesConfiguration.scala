@@ -34,8 +34,6 @@ class PropertiesConfiguration(props : Properties) extends JobConfiguration {
     override def windowSlide: FiniteDuration = getFiniteDuration(props, INT_WINDOW_SLIDE, 5.minutes)
   }
 
-  override def numSensors: Int = getInt(props, NUM_SENSORS, 10)
-
   override def elasticSearch : ElasticsearchConfig= new ElasticsearchConfig {
 
     override def hostIp: String = getString(props, ES_HOST_IP, "127.0.0.1")
@@ -75,7 +73,6 @@ object PropertiesConfiguration {
   val INT_WINDOW_SLIDE = "interpolation.window_slide"
   val MAD_WINDOW_SLIDE = "outliers.window_slide"
   val MAD_THRESHOLD = "outliers.threshold_multiple"
-  val NUM_SENSORS = "num_sensors"
   val ES_HOST_IP = "es.host_ip"
   val ES_PORT = "es.port"
   val ES_CLUSTER_NAME = "es.cluster_name"

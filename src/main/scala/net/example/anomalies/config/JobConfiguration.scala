@@ -28,11 +28,6 @@ trait JobConfiguration extends Serializable {
   def interpolationConfig : LinearRegressionConfig
 
   /**
-    * @return Number of sensors in the input.
-    */
-  def numSensors : Int
-
-  /**
     * @return Elastic search configuration.
     */
   def elasticSearch : ElasticsearchConfig

@@ -32,7 +32,6 @@ class PropertiesConfigurationTest extends FunSpec with Matchers {
       conf.interpolationConfig.maximumGap shouldEqual 15.minutes
       conf.interpolationConfig.historyLength shouldEqual 8
       conf.interpolationConfig.windowSlide shouldEqual 1.minute
-      conf.numSensors shouldEqual 10
       conf.outlierConfig.thresholdMultiple shouldEqual 4.0
       conf.outlierConfig.windowSlide shouldEqual 3.minutes
       conf.elasticSearch.hostIp shouldEqual "127.0.0.1"

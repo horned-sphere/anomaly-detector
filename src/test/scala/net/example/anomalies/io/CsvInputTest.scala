@@ -1,79 +1,77 @@
 package net.example.anomalies.io
 
-import java.net.URI
 
-import io.flinkspector.core.runtime.OutputVerifier
-import io.flinkspector.datastream.DataStreamTestBase
-import net.example.anomalies.model.DataPoint
-import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.types.Row
-import org.scalatest.{BeforeAndAfter, FunSpecLike, Inside, Matchers}
+import java.time.Instant
 
-import scala.collection.mutable.ListBuffer
+import org.scalatest._
+
 import scala.util.matching.Regex
 
 /**
   * Test for the [[CsvDataInputSource]].
   */
-class CsvInputTest extends DataStreamTestBase with FunSpecLike with Matchers with BeforeAndAfter with Inside {
+class CsvInputTest extends FunSpec with Matchers with Inside {
 
   import CsvInputTest._
 
-  before {
-    initialize()
-
-  }
-
   describe("The CSV input") {
 
-    it("should produce the correct number of records in time order") {
+    it("should ignore header lines") {
 
-      import scala.collection.JavaConverters._
+      CsvDataInputSource.cleanRow(Rows.head) shouldEqual None
 
-      val rows = List(
-        createRow("2017-01-01T00:00:00Z", 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0),
-        createRow("2017-01-01T00:01:00Z", 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0)
-      )
+    }
 
-      val inputSrc = new CsvDataInputSource(10, URI.create("file:///tmp"), false)
-
-      val inputStream = inputSrc.unpackRows(new DataStream(testEnv.fromCollection(rows.asJava)))
-
-      val verifier = new OutputVerifier[DataPoint] {
-
-        val points: ListBuffer[DataPoint] = ListBuffer[DataPoint]()
-
-        override def receive(t: DataPoint): Unit = {
-          points += t
-        }
-
-        override def init(): Unit = {}
-
-        override def finish(): Unit = {
-          points.size shouldEqual 20
-          points.map(_.timestamp).toSet.size shouldEqual 2
-
-          val seq = points.toIndexedSeq
-
-          for (i <- 0 until seq.length - 1; j = i + 1) {
-            seq(i).timestamp.compareTo(seq(j).timestamp) should be <= 0
-          }
-
-          for (i <- seq.indices) {
-
-            inside(seq(i).sensor) {
-              case Sensor(nStr) => if (i < 10) seq(i).value shouldEqual Some(nStr.toDouble) else
-                seq(i).value shouldEqual Some(nStr.toDouble * 10.0)
-            }
-          }
-        }
+    it("should clean lines correctly") {
+      inside(CsvDataInputSource.cleanRow(Rows(1))) {
+        case Some((ts, cols)) =>
+          ts shouldEqual Instant.parse("2017-01-01T00:00:00Z")
+          cols shouldEqual Array("1.0", "2.0", "3.0", "4.0")
       }
 
-      val sink = testEnv.createTestSink(verifier)
+      inside(CsvDataInputSource.cleanRow(Rows(2))) {
+        case Some((ts, cols)) =>
+          ts shouldEqual Instant.parse("2017-01-01T00:00:10Z")
+          cols shouldEqual Array("2.0", "4.0", "", "8.0")
+      }
+    }
 
-      inputStream.addSink(sink)
+    it("should create the correct data points for good data") {
 
-      testEnv.executeTest()
+      val points = CsvDataInputSource.cleanRow(Rows(1)).toList.flatMap {
+        case (ts, cols) => CsvDataInputSource.unpackSensorReadings(ts, cols)
+      }
+
+      val expectedTs = Instant.parse("2017-01-01T00:00:00Z")
+
+      for ((point, i) <- points.zipWithIndex) {
+        point.timestamp shouldEqual expectedTs
+        inside(point.sensor) {
+          case Sensor(n) => n.toInt shouldEqual i + 1
+        }
+        point.value shouldEqual Some((i + 1).toDouble)
+      }
+    }
+
+    it("should create the correct data points for missing data") {
+
+      val points = CsvDataInputSource.cleanRow(Rows(2)).toList.flatMap {
+        case (ts, cols) => CsvDataInputSource.unpackSensorReadings(ts, cols)
+      }
+
+      val expectedTs = Instant.parse("2017-01-01T00:00:10Z")
+
+      for ((point, i) <- points.zipWithIndex) {
+        point.timestamp shouldEqual expectedTs
+        inside(point.sensor) {
+          case Sensor(n) => n.toInt shouldEqual i + 1
+        }
+        if (i == 2) {
+          point.value shouldEqual None
+        } else {
+          point.value shouldEqual Some((2 * (i + 1)).toDouble)
+        }
+      }
     }
 
   }
@@ -82,15 +80,13 @@ class CsvInputTest extends DataStreamTestBase with FunSpecLike with Matchers wit
 
 object CsvInputTest {
 
-  def createRow(ts : String, values : Double*) : Row = {
-    val row = new Row(values.length + 1)
-    row.setField(0, ts)
-    for (i <- values.indices) row.setField(i + 1, values(i))
-    row
-  }
+  val Rows : List[String] = List(
+    "Date, Sensor-1, Sensor-2, Sensor-3, Sensor-4 ",
+    s"2017-01-01T00:00:00Z, 1.0, 2.0, 3.0, 4.0 ",
+    s"2017-01-01T00:00:10Z, 2.0, 4.0, , 8.0 "
+  )
 
   val Sensor: Regex = "Sensor-(\\d+)".r
 
-  val CsvFile = "TestFile.csv"
 
 }
